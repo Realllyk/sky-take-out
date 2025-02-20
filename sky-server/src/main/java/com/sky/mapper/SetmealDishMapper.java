@@ -8,7 +8,7 @@ import java.util.List;
 public interface SetmealDishMapper {
     /**
      * 根据菜品id查询套餐id
-     * @param ids
+     * @param dishIds
      * @return
      */
     // select seatmeal_id from seatmeal_dish where dish_id in (1, 2, 3, 4)
