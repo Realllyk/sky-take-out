@@ -22,7 +22,6 @@ public interface SetmealDishMapper {
      * 保存套餐菜品的关联信息
      * @param setmealDishes
      */
-    @AutoFill(value = OperationType.INSERT)
     void insertBatch(List<SetmealDish> setmealDishes);
 
     /**

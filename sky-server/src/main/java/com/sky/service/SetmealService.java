@@ -40,4 +40,11 @@ public interface SetmealService {
      * @return
      */
     public SetmealVO getByIdWithDish(Long id);
+
+    /**
+     * 根据套餐id 起售或者停售 套餐
+     * @param status
+     * @param id
+     */
+    public void startOrStop(Integer status, Long id);
 }

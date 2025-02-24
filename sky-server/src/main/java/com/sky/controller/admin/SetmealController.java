@@ -75,11 +75,30 @@ public class SetmealController {
         return Result.success();
     }
 
+    /**
+     * 根据套餐id 查询 套餐基本信息 及 套餐菜品关联信息
+     * @param id
+     * @return
+     */
     @GetMapping("/{id}")
-    @ApiOperation("根据id查询套餐基本信息")
+    @ApiOperation("根据id查询套餐")
     public Result<SetmealVO> getById(@PathVariable Long id){
         log.info("根据id查询套餐信息：{}", id);
         SetmealVO setmealVO = setMealService.getByIdWithDish(id);
         return Result.success(setmealVO);
+    }
+
+    /**
+     * 根据套餐id 起售或停售 套餐
+     * @param status
+     * @param id
+     * @return
+     */
+    @PostMapping("/status/{status}")
+    @ApiOperation("起售或停售套餐")
+    public Result startOrStop(@PathVariable Integer status, Long id){
+        log.info("起售或停售套餐：{}，{}", status, id);
+        setMealService.startOrStop(status, id);
+        return Result.success();
     }
 }
