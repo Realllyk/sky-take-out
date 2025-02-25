@@ -11,3 +11,8 @@ sky:
     access-key-id: LTAI5t79zLxeXhLp2bg5qwM8
     access-key-secret: 0DV6H5sw44qcRkEH2kPbFrMZfKikH7
     bucket-name: realllyka-sky-itcast
+  redis:
+    host: localhost
+    port: 6379
+    password: 123456
+    database: 10
