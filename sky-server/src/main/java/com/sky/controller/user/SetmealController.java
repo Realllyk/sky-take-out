@@ -33,7 +33,7 @@ public class SetmealController {
     @Cacheable(cacheNames = "setmealCache", key = "#categoryId")
     public Result<List<Setmeal>> list(Long categoryId) {
         Setmeal setmeal = new Setmeal();
-        setmeal.setCategoryId(categoryId);
+          setmeal.setCategoryId(categoryId);
         setmeal.setStatus(StatusConstant.ENABLE);
 
         List<Setmeal> list = setmealService.list(setmeal);
