@@ -124,7 +124,8 @@ public class OrderServiceImpl implements OrderService {
         Long userId = BaseContext.getCurrentId();
         User user = userMapper.getById(userId);
 
-        //调用微信支付接口，生成预支付交易单
+        //调用微信支付接口，生成预支付交易单（目前没有企业商品号做不了）(暂时直接通过)
+        // TODO
         JSONObject jsonObject = weChatPayUtil.pay(
                 ordersPaymentDTO.getOrderNumber(), //商户订单号
                 new BigDecimal(0.01), //支付金额，单位 元
@@ -212,5 +213,46 @@ public class OrderServiceImpl implements OrderService {
         orderVO.setOrderDetailList(orderDetailList);
 
         return orderVO;
+    }
+
+    /**
+     * 根据id取消订单
+     * @param id
+     */
+    public void userCancelById(Long id) throws Exception {
+        // 根据id查询订单
+        Orders orders = orderMapper.getById(id);
+
+        // 检验订单是否存在
+        if(orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        // 如果订单状态已经过了待接单，需要用户打电话与商家确认
+        if(orders.getStatus() > Orders.TO_BE_CONFIRMED) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        // 订单处于待接单状态，则需要进行退款
+        if(orders.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
+            // 没有微信企业认证，暂时做不了
+            //TODO
+//            weChatPayUtil.refund(
+//                    orders.getNumber(), //商户订单号
+//                    orders.getNumber(), //商户退款订单号
+//                    new BigDecimal(0.01), // 退款金额
+//                    new BigDecimal(0.01)  // 原订单金额
+//            );
+
+            // 设置订单状态为 退款
+            orders.setPayStatus(Orders.REFUND);
+        }
+
+
+        // 更新订单状态，取消原因，取消时间
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelTime(LocalDateTime.now());
+        orders.setCancelReason("用户取消");
+        orderMapper.update(orders);
     }
 }
