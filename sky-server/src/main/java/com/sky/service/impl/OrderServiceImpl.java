@@ -86,6 +86,7 @@ public class OrderServiceImpl implements OrderService {
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
         orders.setUserId(userId);
+        orders.setAddress(addressBook.getDetail());
 
         orderMapper.insert(orders);
 
@@ -254,5 +255,31 @@ public class OrderServiceImpl implements OrderService {
         orders.setCancelTime(LocalDateTime.now());
         orders.setCancelReason("用户取消");
         orderMapper.update(orders);
+    }
+
+    /**
+     * 根据订单id，将订单菜品详情加入到购物车
+     * @param id
+     */
+    public void repetition(Long id) {
+        // 查询用户id
+        Long userId = BaseContext.getCurrentId();
+
+        // 根据订单id获取订单详情列表
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+
+        // 把订单详情列表中的每一项加入到购物车中
+        List<ShoppingCart> shoppingCartList = new ArrayList<>();
+        for(OrderDetail orderDetail: orderDetailList) {
+            ShoppingCart shoppingCart = new ShoppingCart();
+            // 除了主键id
+            BeanUtils.copyProperties(orderDetail, shoppingCart, "id");
+            shoppingCart.setCreateTime(LocalDateTime.now());
+            shoppingCart.setUserId(userId);
+            shoppingCartList.add(shoppingCart);
+        }
+
+        // 将购物车数据批量插入到表中
+        shoppingCartMapper.insertBatch(shoppingCartList);
     }
 }
