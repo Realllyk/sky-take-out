@@ -44,7 +44,7 @@
         select * from orders
         <where>
             <if test="number != null"> number = #{number} </if>
-            <if test="phone != null">and phone = #{phone} </if>
+            <if test="phone != null">and phone like concat('%', phone, '%') </if>
             <if test="status != null"> and status = #{status}</if>
             <if test="beginTime != null"> and orderTime &gt;= #{beginTime}</if>
             <if test="endTime != null"> and orderTime &lt;= #{endTime}</if>

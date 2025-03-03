@@ -30,6 +30,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -282,4 +283,51 @@ public class OrderServiceImpl implements OrderService {
         // 将购物车数据批量插入到表中
         shoppingCartMapper.insertBatch(shoppingCartList);
     }
+
+    /**
+     * 管理端，根据条件分页查询订单信息
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    public PageResult pageQuery4Admin(OrdersPageQueryDTO ordersPageQueryDTO) {
+        // 开启分页设置
+        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+
+        // 获取订单信息
+        Page<Orders> page = orderMapper.pageQuery(ordersPageQueryDTO);
+
+        // 封装OrderVO
+        List<OrderVO> list = new ArrayList<>();
+        for(Orders orders: page) {
+            // 获取订单详细信息，并将其拼接为字符串
+            String orderDishes = getOrderDishesStr(orders);
+            OrderVO orderVO = new OrderVO();
+            BeanUtils.copyProperties(orders, orderVO);
+            orderVO.setOrderDishes(orderDishes);
+            list.add(orderVO);
+        }
+
+        return new PageResult(page.getTotal(), list);
+    }
+
+    /**
+     * 根据订单id获取菜品信息字符串
+     *
+     * @param orders
+     * @return
+     */
+    private String getOrderDishesStr(Orders orders) {
+        // 查询订单菜品详情信息（订单中的菜品和数量）
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(orders.getId());
+
+        // 将每一条订单菜品信息拼接为字符串（格式：宫保鸡丁*3；）
+        List<String> orderDishList = orderDetailList.stream().map(x -> {
+            String orderDish = x.getName() + "*" + x.getNumber() + ";";
+            return orderDish;
+        }).collect(Collectors.toList());
+
+        // 将该订单对应的所有菜品信息拼接在一起
+        return String.join("", orderDishList);
+    }
+
 }
