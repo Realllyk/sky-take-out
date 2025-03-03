@@ -5,9 +5,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersPageQueryDTO;
-import com.sky.dto.OrdersPaymentDTO;
-import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.*;
 import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
@@ -346,5 +344,54 @@ public class OrderServiceImpl implements OrderService {
         orderStatisticsVO.setDeliveryInProgress(deliveryInProgress);
 
         return orderStatisticsVO;
+    }
+
+    /**
+     * 接单
+     * @param ordersConfirmDTO
+     */
+    public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
+        Orders orders = new Orders();
+        orders.setId(ordersConfirmDTO.getId());
+        orders.setStatus(Orders.CONFIRMED);
+
+        orderMapper.update(orders);
+    }
+
+    /**
+     * 拒单
+     * @param ordersRejectionDTO
+     */
+    public void reject(OrdersRejectionDTO ordersRejectionDTO) {
+        // 获取订单信息
+        Orders orders = orderMapper.getById(ordersRejectionDTO.getId());
+
+        // 只有待接单状态可以拒单
+        if(!orders.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        // 如果支付状态是已支付，则需要进行退款
+        if(orders.getPayStatus().equals(Orders.PAID)) {
+            // 没有微信企业认证，暂时做不了
+            //TODO
+//            weChatPayUtil.refund(
+//                    orders.getNumber(), //商户订单号
+//                    orders.getNumber(), //商户退款订单号
+//                    new BigDecimal(0.01), // 退款金额
+//                    new BigDecimal(0.01)  // 原订单金额
+//            );
+
+            // 设置订单状态为 退款
+            orders.setPayStatus(Orders.REFUND);
+        }
+
+        // 更新订单状态
+        Orders newOrders = new Orders();
+        newOrders.setId(ordersRejectionDTO.getId());
+        newOrders.setRejectionReason(ordersRejectionDTO.getRejectionReason());
+        newOrders.setStatus(Orders.CANCELLED);
+        newOrders.setCancelTime(LocalDateTime.now());
+        orderMapper.update(newOrders);
     }
 }
