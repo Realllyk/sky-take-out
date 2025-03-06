@@ -44,6 +44,10 @@ sky:
     user-secret-key: itheima
     user-ttl: 7200000
     user-token-name: authentication
+  shop:
+    address: 北京市海淀区上地十街10号
+  baidu:
+    ak: YaGxspt38XWeWuZdzBm3N9Vf1JmKwPFt
   alioss:
     endpoint: ${sky.alioss.endpoint}
     access-key-id: ${sky.alioss.access-key-id}
