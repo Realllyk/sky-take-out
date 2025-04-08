@@ -61,6 +61,12 @@ public class OrderServiceImpl implements OrderService {
     private UserMapper userMapper;
 
     @Autowired
+    private onOrderPaymentMessageMapper orderMessageMapper;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @Autowired
     private WeChatPayUtil weChatPayUtil;
 
     /**
@@ -178,6 +184,31 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderMapper.update(orders);
+
+        // 2. 创建消息记录
+        OrderMessage orderMessage = OrderMessage.builder()
+                .orderId(ordersDB.getId())
+                .orderNumber(outTradeNo)
+                .status(OrderMessageStatus.PENDING)
+                .createTime(LocalDateTime.now())
+                .build();
+        orderMessageMapper.insert(orderMessage);
+
+        // 3. 发送消息到MQ
+        OrderMessageDTO messageDTO = new OrderMessageDTO();
+        BeanUtils.copyProperties(ordersDB, messageDTO);
+        messageDTO.setMessageId(orderMessage.getId());
+        
+        rabbitTemplate.convertAndSend(
+            "order.exchange",
+            "order.pay.success",
+            JSON.toJSONString(messageDTO),
+            message -> {
+                // 设置消息持久化
+                message.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+                return message;
+            }
+        );
     }
 
     /**
@@ -537,6 +568,42 @@ public class OrderServiceImpl implements OrderService {
         if(distance > 5000){
             //配送距离超过5000米
             throw new OrderBusinessException("超出配送范围");
+        }
+    }
+
+
+    /**
+     * 重新发送未成功处理的订单消息
+     */
+    @Scheduled(fixedDelay = 30000) // 每30秒执行一次
+    public void resendFailedMessages() {
+        // 查询所有状态为PENDING的消息
+        List<OrderMessage> pendingMessages = orderMessageMapper.findByStatus(OrderMessageStatus.PENDING);
+        
+        for (OrderMessage message : pendingMessages) {
+            // 检查消息创建时间，如果超过5分钟还未处理，则重新发送
+            if (message.getCreateTime().plusMinutes(5).isBefore(LocalDateTime.now())) {
+                Orders order = orderMapper.getById(message.getOrderId());
+                if (order != null) {
+                    OrderMessageDTO messageDTO = new OrderMessageDTO();
+                    BeanUtils.copyProperties(order, messageDTO);
+                    messageDTO.setMessageId(message.getId());
+                    
+                    rabbitTemplate.convertAndSend(
+                        "order.exchange",
+                        "order.pay.success",
+                        JSON.toJSONString(messageDTO),
+                        msg -> {
+                            msg.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+                            return msg;
+                        }
+                    );
+                    
+                    // 更新消息重试次数
+                    message.setRetryCount(message.getRetryCount() + 1);
+                    orderMessageMapper.update(message);
+                }
+            }
         }
     }
 }
